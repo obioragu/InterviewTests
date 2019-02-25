@@ -1,38 +1,46 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace GraduationTracker
 {
     public partial class GraduationTracker
-    {   
-        public Tuple<bool, STANDING>  HasGraduated(Diploma diploma, Student student)
-        {
-            var credits = 0;
-            var average = 0;
-        
-            for(int i = 0; i < diploma.Requirements.Length; i++)
-            {
-                for(int j = 0; j < student.Courses.Length; j++)
-                {
-                    var requirement = Repository.GetRequirement(diploma.Requirements[i]);
+    {
 
-                    for (int k = 0; k < requirement.Courses.Length; k++)
+        public int credits { get; set; }
+        public decimal average { get; set; }
+
+
+        /// <summary>
+        /// This function computes a student's average score and total credits for a given diploma program
+        /// </summary>
+        /// <param name="student"></param>
+        /// <param name="diploma"></param>
+        /// <param name="diplomareqId"></param>
+        public void getStudentReqCreditsandAverage(Student student, Diploma diploma, int diplomareqId)
+        {
+            foreach (var stdcourse in student.Courses)
+            {
+                var requirement = Repository.GetRequirement(diplomareqId);
+
+                foreach (int reqcourseId in requirement.Courses)
+                {
+                    if (requirement.Courses.Contains(stdcourse.Id))
                     {
-                        if (requirement.Courses[k] == student.Courses[j].Id)
-                        {
-                            average += student.Courses[j].Mark;
-                            if (student.Courses[j].Mark > requirement.MinimumMark)
-                            {
-                                credits += requirement.Credits;
-                            }
-                        }
+                        average += stdcourse.Mark;
+                        credits += stdcourse.Mark > requirement.MinimumMark ? requirement.Credits : 0;
                     }
                 }
             }
+        }
 
+        public Tuple<bool, STANDING>  HasGraduated(Diploma diploma, Student student)
+        {
+            credits = 0;
+            average = 0;
+
+            //calculate student credits and average score for each diploma requirement
+            diploma.Requirements.ToList().ForEach(x => getStudentReqCreditsandAverage(student, diploma, x));         
             average = average / student.Courses.Length;
 
             var standing = STANDING.None;
@@ -44,7 +52,7 @@ namespace GraduationTracker
             else if (average < 95)
                 standing = STANDING.MagnaCumLaude;
             else
-                standing = STANDING.MagnaCumLaude;
+                standing = STANDING.SumaCumLaude;
 
             switch (standing)
             {
